@@ -127,9 +127,42 @@
     .bars i,.strip .track{animation:none}
     .strip{white-space:normal}
     .strip .track{flex-wrap:wrap;justify-content:center;padding:10px}
-    .btn,.bubble-btn,.talk,.sticky{transition:none}
+    .btn,.bubble-btn,.talk,.sticky,.toast{transition:none}
+    .mover,.fg{animation:none !important}
   }
+
+  /* ---------- sign pop-up ---------- */
+  .toast{position:fixed;left:12px;right:12px;bottom:88px;z-index:30;background:#fff;border:2px solid var(--navy);border-radius:22px;box-shadow:0 18px 44px rgba(11,27,51,.35);padding:14px;transform:translateY(24px);opacity:0;visibility:hidden;transition:transform .28s ease,opacity .28s ease,visibility .28s}
+  .toast.show{transform:translateY(0);opacity:1;visibility:visible}
+  @media(min-width:760px){.toast{left:auto;right:24px;bottom:24px;width:430px}}
+  .toast .x{position:absolute;top:8px;right:8px;width:34px;height:34px;border-radius:50%;border:0;background:var(--navy);color:#fff;font-size:20px;line-height:1;display:grid;place-items:center}
+  .toast .x:hover,.toast .x:focus-visible{background:var(--navy2)}
+  .tbody{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:center;padding-right:30px}
+  .scene{overflow:hidden;border-radius:14px;background:#E8EEF7;line-height:0}
+  .sc{display:block;width:100%;height:auto;border-radius:14px}
+  .tk{margin:0;font:700 11px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--orange-dark)}
+  .tinfo h3{margin:4px 0 2px;font-size:22px;line-height:1.1}
+  .tsays{margin:0 0 6px;font-weight:700;color:var(--navy)}
+  .tdesc{margin:0;font-size:14.5px;color:var(--muted);line-height:1.4}
+  .tfoot{margin:12px 0 0;padding-top:10px;border-top:1px solid var(--edge);font-size:13px;color:var(--muted)}
+  .tfoot a{font-weight:700}
+  @media(max-width:400px){.tbody{grid-template-columns:120px 1fr}}
+
+  /* finger animations inside the pop-up drawings */
+  .fg{transform-box:fill-box;transform-origin:50% 100%}
+  .a-wiggle .fg{animation:wig .45s ease-in-out infinite alternate}
+  .a-wiggle .fg.i1{animation-delay:-.1s}.a-wiggle .fg.i2{animation-delay:-.2s}.a-wiggle .fg.i3{animation-delay:-.3s}
+  @keyframes wig{from{transform:rotate(-13deg)}to{transform:rotate(13deg)}}
+  .a-fold .fg{animation:fold .8s ease-in-out infinite}
+  @keyframes fold{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.4)}}
+  .a-snap .fg.i0{animation:snapi 1s ease-in-out infinite}
+  .a-snap .fg.i1{animation:snapm 1s ease-in-out infinite}
+  @keyframes snapi{0%,35%{transform:rotate(0)}60%,100%{transform:rotate(22deg)}}
+  @keyframes snapm{0%,35%{transform:rotate(0)}60%,100%{transform:rotate(12deg)}}
+  .a-flick .fg.i0{animation:flick 1.6s ease-in-out infinite}
+  @keyframes flick{0%,30%{transform:scaleY(.3)}55%,100%{transform:scaleY(1)}}
 </style>
+<style id="kf"></style>
 </head>
 <body>
 
@@ -204,7 +237,7 @@
   <section id="hear">
     <div class="wrap">
       <h2>Hear what it <em>says</em></h2>
-      <p class="lead">24 signs, 24 phrases. Tap a bubble to hear it on your phone.</p>
+      <p class="lead">24 signs, 24 phrases. Tap a bubble to hear it and see how the sign looks.</p>
       <ul class="says" id="signList"></ul>
     </div>
   </section>
@@ -238,7 +271,7 @@
 <footer>
   <div class="wrap">
     <p><b>Signova</b></p>
-    <p>Made by Signova at FutureWorld.</p>
+    <p>Made by [Team names] at [School / event name].</p>
     <p id="footContact"></p>
   </div>
 </footer>
@@ -248,13 +281,224 @@
   <a class="btn primary" href="#contact">Get in touch</a>
 </div>
 
+<div class="toast" id="toast" role="dialog" aria-live="polite" aria-label="How to sign it">
+  <button class="x" id="toastClose" type="button" aria-label="Close">&times;</button>
+  <div class="tbody">
+    <div class="scene" id="scene"></div>
+    <div class="tinfo">
+      <p class="tk">ASL sign</p>
+      <h3 id="tName"></h3>
+      <p class="tsays" id="tSays"></p>
+      <p class="tdesc" id="tDesc"></p>
+    </div>
+  </div>
+  <p class="tfoot">Simplified drawing. <a id="tLink" href="#" target="_blank" rel="noopener">Watch a real signer</a> for the exact sign.</p>
+</div>
+
+<script>
+/* Signova: simple animated hand-sign illustrations (own drawings, not copied from anywhere).
+   Right hand, palm facing the viewer, signer facing the viewer. */
+(function (root) {
+  "use strict";
+
+  var OUT = "#B93C06", FILL = "#FF7A3D";
+  var BASE = 62;                         // y where fingers start
+  var FX = [69, 58, 47, 36];             // finger x centres: index, middle, ring, pinky
+  var LEN = [36, 40, 36, 28];
+
+  function stroke(d, ow, iw) {
+    return '<path d="' + d + '" fill="none" stroke="' + OUT + '" stroke-width="' + ow + '" stroke-linecap="round" stroke-linejoin="round"/>' +
+           '<path d="' + d + '" fill="none" stroke="' + FILL + '" stroke-width="' + iw + '" stroke-linecap="round" stroke-linejoin="round"/>';
+  }
+  function fmt(n) { return (Math.round(n * 10) / 10).toString(); }
+
+  function fingerD(i, state, ang) {
+    var x = FX[i], len = LEN[i], a = (ang || 0) * Math.PI / 180;
+    if (state === "up") {
+      return "M" + x + "," + BASE + " L" + fmt(x + len * Math.sin(a)) + "," + fmt(BASE - len * Math.cos(a));
+    }
+    if (state === "claw") {
+      return "M" + x + "," + BASE + " L" + x + "," + fmt(BASE - len * 0.5) +
+             " Q" + x + "," + fmt(BASE - len * 0.95) + " " + (x + 9) + "," + fmt(BASE - len * 0.88);
+    }
+    return "M" + x + "," + BASE + " L" + x + "," + (BASE - 5);          // curled: just a knuckle bump
+  }
+
+  var THUMB = {
+    side:   { d: "M70,98 Q90,92 98,70",  before: true  },
+    up:     { d: "M73,92 L80,50",        before: false },
+    across: { d: "M72,90 L44,84",        before: false },
+    tuck:   { d: "M66,92 L57,90",        before: false },
+    hold:   { d: "M72,92 L40,80",        before: false },
+    between:{ d: "M63.5,82 L63.5,58",    before: false }
+  };
+
+  var PALM = '<rect x="30" y="58" width="44" height="46" rx="12" fill="' + FILL + '" stroke="' + OUT + '" stroke-width="3"/>';
+  var WRIST = '<rect x="40" y="98" width="26" height="22" rx="6" fill="' + FILL + '" stroke="' + OUT + '" stroke-width="3"/>';
+
+  function hand(o) {
+    var out = [WRIST], i;
+    if (o.shape === "C") {
+      return '<g class="hand">' + WRIST + stroke("M84,46 A30,30 0 1 0 84,94", 14, 10) + '</g>';
+    }
+    if (o.shape === "flatO") {
+      var s = "";
+      for (i = 0; i < 4; i++) s += '<g class="fg i' + i + '">' + stroke("M" + FX[i] + "," + BASE + " Q" + FX[i] + ",40 54,25", 11, 8) + "</g>";
+      s += '<g class="th">' + stroke("M72,96 Q88,60 58,28", 11, 8) + "</g>";
+      return '<g class="hand">' + WRIST + s + PALM + "</g>";
+    }
+    var f = o.f || ["up", "up", "up", "up"], ang = o.ang || [0, 0, 0, 0], th = THUMB[o.th || "tuck"];
+    if (o.shape === "OK") {
+      out.push('<g class="fg i0">' + stroke("M77,46 m-12,0 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0", 11, 8) + "</g>");
+      f = ["none", "up", "up", "up"];
+    }
+    for (i = 0; i < 4; i++) {
+      if (f[i] === "none") continue;
+      out.push('<g class="fg i' + i + '">' + stroke(fingerD(i, f[i], ang[i]), 11, 8) + "</g>");
+    }
+    if (o.shape !== "OK" && th.before) out.push('<g class="th">' + stroke(th.d, 11, 8) + "</g>");
+    out.push(PALM);
+    // lines between curled fingers so a fist reads as a fist
+    for (i = 0; i < 3; i++) {
+      if (f[i] === "down" && f[i + 1] === "down") {
+        var mx = (FX[i] + FX[i + 1]) / 2;
+        out.push('<path d="M' + mx + ',56 L' + mx + ',74" stroke="' + OUT + '" stroke-width="1.8" stroke-linecap="round"/>');
+      }
+    }
+    if (f.indexOf("down") !== -1 && o.shape !== "OK") {
+      out.push('<path d="M33,75 Q53,81 72,75" fill="none" stroke="' + OUT + '" stroke-width="1.8" stroke-linecap="round" opacity=".7"/>');
+    }
+    if (o.shape !== "OK" && !th.before) out.push('<g class="th">' + stroke(th.d, 11, 8) + "</g>");
+    return '<g class="hand">' + out.join("") + "</g>";
+  }
+
+  /* ---------------------------------------------------------------
+     sign data: handshape + motion + how to describe it
+     motion frames: [percent, x, y, rotationDeg, scale] (scene is 240 x 190)
+     --------------------------------------------------------------- */
+  var U = ["up", "up", "up", "up"], D = ["down", "down", "down", "down"];
+  var CIRCLE = [[0, 112, 128, 0, 1], [25, 124, 138, 0, 1], [50, 112, 148, 0, 1], [75, 100, 138, 0, 1], [100, 112, 128, 0, 1]];
+  var SHAKE = [[0, 102, 134, 0, 1], [25, 120, 134, 0, 1], [50, 102, 134, 0, 1], [75, 120, 134, 0, 1], [100, 102, 134, 0, 1]];
+  var BOB = [[0, 112, 132, 0, 1], [50, 112, 124, 0, 1], [100, 112, 132, 0, 1]];
+
+  var SIGNS = {
+    "Hello": { hand: { f: U, th: "tuck" },
+      motion: { dur: 1.8, frames: [[0, 104, 72, 0, 1], [15, 104, 72, 0, 1], [70, 62, 56, -14, 1], [100, 62, 56, -14, 1]] },
+      desc: "Flat hand at your forehead, then move it outward like a salute." },
+    "Thank you": { hand: { f: U, th: "tuck" },
+      motion: { dur: 1.8, frames: [[0, 110, 118, 0, 1], [15, 110, 118, 0, 1], [70, 104, 150, -10, 1], [100, 104, 150, -10, 1]] },
+      desc: "Flat fingertips at your chin, then move the hand forward and down." },
+    "Please": { hand: { f: U, th: "tuck" }, motion: { dur: 2.4, ease: "linear", frames: CIRCLE },
+      desc: "Flat hand on your chest, rubbing in a circle." },
+    "Sorry": { hand: { f: D, th: "across" }, motion: { dur: 2.4, ease: "linear", frames: CIRCLE },
+      desc: "Closed fist on your chest, rubbing in a circle." },
+    "Yes": { hand: { f: D, th: "across" },
+      motion: { dur: 1.1, frames: [[0, 112, 138, 0, 1], [50, 112, 138, 38, 1], [100, 112, 138, 0, 1]] },
+      desc: "Closed fist, nodding up and down like a head nodding." },
+    "No": { hand: { f: ["up", "up", "down", "down"], ang: [8, -6, 0, 0], th: "side" }, anim: "snap",
+      motion: { dur: 1, frames: [[0, 112, 132, 0, 1], [100, 112, 132, 0, 1]] },
+      desc: "Index and middle fingers snap shut onto the thumb, like a beak closing." },
+    "Water": { hand: { f: ["up", "up", "up", "down"], ang: [9, 0, -9, 0], th: "hold" },
+      motion: { dur: 1.2, frames: [[0, 112, 115, 0, 1], [30, 112, 108, 0, 1], [50, 112, 115, 0, 1], [70, 112, 108, 0, 1], [100, 112, 115, 0, 1]] },
+      desc: "Three fingers up (a \u201CW\u201D), tapping your chin." },
+    "Food": { hand: { shape: "flatO" },
+      motion: { dur: 1.2, frames: [[0, 116, 101, 0, 1], [30, 116, 94, 0, 1], [50, 116, 101, 0, 1], [70, 116, 94, 0, 1], [100, 116, 101, 0, 1]] },
+      desc: "Fingertips pinched together, tapping your mouth." },
+    "Restroom": { hand: { f: D, th: "between" }, motion: { dur: 0.9, ease: "linear", frames: SHAKE },
+      desc: "A fist with the thumb poking between the first two fingers (a \u201CT\u201D), shaken side to side." },
+    "Emergency": { hand: { f: D, th: "tuck" }, motion: { dur: 0.9, ease: "linear", frames: SHAKE },
+      desc: "A closed fist (an \u201CE\u201D), shaken side to side." },
+    "Help": { hand: { f: D, th: "up" },
+      motion: { dur: 1.6, frames: [[0, 112, 150, 0, 1], [20, 112, 150, 0, 1], [80, 112, 122, 0, 1], [100, 112, 122, 0, 1]] },
+      desc: "Fist with the thumb up, lifted upward. (Usually signed with two hands; this is the one-hand version.)" },
+    "Stop": { hand: { f: U, th: "tuck" },
+      motion: { dur: 1.2, frames: [[0, 112, 106, 0, 1], [20, 112, 106, 0, 1], [45, 112, 144, -8, 1], [100, 112, 144, -8, 1]] },
+      desc: "Flat hand held up, then chopped down. (Usually the chop lands on the other palm.)" },
+    "I love you": { hand: { f: ["up", "down", "down", "up"], ang: [8, 0, 0, -8], th: "side" },
+      motion: { dur: 1.4, frames: [[0, 112, 130, 0, 1], [50, 112, 130, 0, 1.12], [100, 112, 130, 0, 1]] },
+      desc: "Thumb, index finger and little finger out, held up." },
+    "Call": { hand: { f: ["down", "down", "down", "up"], th: "side" },
+      motion: { dur: 1.2, frames: [[0, 68, 76, -6, 1], [50, 68, 76, 8, 1], [100, 68, 76, -6, 1]] },
+      desc: "Thumb and little finger out (a \u201CY\u201D), held at your ear like a phone." },
+    "Okay": { hand: { shape: "OK", ang: [0, 6, 0, -8] },
+      motion: { dur: 1.4, frames: BOB },
+      desc: "Thumb and index finger make a circle, other three fingers up." },
+    "Drink": { hand: { shape: "C" },
+      motion: { dur: 1.8, frames: [[0, 112, 112, 0, 1], [20, 112, 112, 0, 1], [60, 114, 96, 42, 1], [100, 114, 96, 42, 1]] },
+      desc: "Hand in a \u201CC\u201D shape, tipped toward your mouth like a cup." },
+    "Wait": { hand: { f: U, ang: [10, 3, -3, -10], th: "side" }, anim: "wiggle",
+      motion: { dur: 1.4, frames: [[0, 112, 130, 0, 1], [100, 112, 130, 0, 1]] },
+      desc: "Open hand, wiggle the fingers. (Usually signed with two hands.)" },
+    "Goodbye": { hand: { f: U, ang: [6, 2, -2, -6], th: "side" }, anim: "fold",
+      motion: { dur: 1.4, frames: [[0, 104, 114, 0, 1], [100, 104, 114, 0, 1]] },
+      desc: "Open hand, fold the fingers down and up like a wave." },
+    "Understand": { hand: { f: ["up", "down", "down", "down"], th: "across" }, anim: "flick",
+      motion: { dur: 1.6, frames: [[0, 100, 74, 0, 1], [100, 100, 74, 0, 1]] },
+      desc: "Fist near your forehead, then flick the index finger up." },
+    "Want": { hand: { f: ["claw", "claw", "claw", "claw"], th: "side" },
+      motion: { dur: 1.6, frames: [[0, 128, 116, 0, 1], [25, 128, 116, 0, 1], [75, 112, 144, 0, 1], [100, 112, 144, 0, 1]] },
+      desc: "Curved \u201Cclaw\u201D hand pulled toward you. (Usually signed with two hands.)" },
+    "Where": { hand: { f: ["up", "down", "down", "down"], th: "across" },
+      motion: { dur: 1, frames: [[0, 112, 130, -16, 1], [50, 112, 130, 16, 1], [100, 112, 130, -16, 1]] },
+      desc: "Index finger up, wagging side to side." },
+    "One": { hand: { f: ["up", "down", "down", "down"], th: "across" }, motion: { dur: 1.4, frames: BOB },
+      desc: "Index finger up." },
+    "Two": { hand: { f: ["up", "up", "down", "down"], ang: [9, -9, 0, 0], th: "across" }, motion: { dur: 1.4, frames: BOB },
+      desc: "Index and middle fingers up and spread (a \u201CV\u201D)." },
+    "Three": { hand: { f: ["up", "up", "down", "down"], ang: [4, -4, 0, 0], th: "side" }, motion: { dur: 1.4, frames: BOB },
+      desc: "Thumb, index and middle fingers out." }
+  };
+
+  function slug(label) { return "k-" + label.toLowerCase().replace(/[^a-z0-9]+/g, "-"); }
+
+  function keyframesCss() {
+    var css = [];
+    Object.keys(SIGNS).forEach(function (label) {
+      var fr = SIGNS[label].motion.frames.map(function (f) {
+        return f[0] + "%{transform:translate(" + f[1] + "px," + f[2] + "px) rotate(" + f[3] + "deg) scale(" + (f[4] || 1) + ")}";
+      }).join("");
+      css.push("@keyframes " + slug(label) + "{" + fr + "}");
+    });
+    return css.join("\n");
+  }
+
+  var FIGURE =
+    '<rect width="240" height="190" rx="16" fill="#E8EEF7"/>' +
+    '<path d="M36,190 Q36,114 120,108 Q204,114 204,190 Z" fill="#2B4570"/>' +
+    '<rect x="107" y="80" width="26" height="30" rx="8" fill="#2B4570"/>' +
+    '<circle cx="120" cy="56" r="28" fill="#3F628F"/>' +
+    '<circle cx="110" cy="52" r="2.6" fill="#E8EEF7"/><circle cx="130" cy="52" r="2.6" fill="#E8EEF7"/>' +
+    '<path d="M113,69 Q120,73 127,69" fill="none" stroke="#E8EEF7" stroke-width="2" stroke-linecap="round"/>';
+
+  /* opts.frame: undefined = animated (CSS), "first"/"last" = fixed pose (for previews / reduced motion) */
+  function scene(label, opts) {
+    opts = opts || {};
+    var s = SIGNS[label];
+    var fr = s.motion.frames, pick = opts.frame === "last" ? fr[fr.length - 1] : fr[0];
+    var tf = "translate(" + pick[1] + "px," + pick[2] + "px) rotate(" + pick[3] + "deg) scale(" + (pick[4] || 1) + ")";
+    var tfAttr = "translate(" + pick[1] + " " + pick[2] + ") rotate(" + pick[3] + ") scale(" + (pick[4] || 1) + ")";
+    var cls = "mover" + (s.anim ? " a-" + s.anim : "");
+    var motion = s.motion, anim = opts.frame ? "" : "animation:" + slug(label) + " " + motion.dur + "s " + (motion.ease || "ease-in-out") + " infinite;";
+    var mover = opts.attrTransform
+      ? '<g class="' + cls + '" transform="' + tfAttr + '">'
+      : '<g class="' + cls + '" style="transform:' + tf + ";" + anim + '">';
+    return '<svg class="sc" viewBox="20 6 200 158.3" role="img" aria-label="Illustration of the ASL sign for ' + label + '">' +
+      FIGURE + mover + '<g transform="scale(.7) translate(-62 -68)">' + hand(s.hand) + "</g></g></svg>";
+  }
+
+  var api = { SIGNS: SIGNS, scene: scene, hand: hand, keyframesCss: keyframesCss, slug: slug };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  else root.SignArt = api;
+})(typeof window !== "undefined" ? window : this);
+
+</script>
 <script>
 (function () {
   "use strict";
 
   /* ===== EDIT THESE (the only things you need to change) ===== */
-  var EMAIL = "signovateam@gmail.com";                     // e.g. "team@example.com"  (leave "" if none)
-  var WHATSAPP = "96891234567";                  // digits only with country code, e.g. "96890000000" (leave "" if none)
+  var EMAIL = "";                     // e.g. "team@example.com"  (leave "" if none)
+  var WHATSAPP = "";                  // digits only with country code, e.g. "96890000000" (leave "" if none)
   /* =========================================================== */
 
   var SIGNS = [
@@ -310,19 +554,38 @@
     } catch (e) { /* speech not available */ }
   }
 
+  /* sign pop-up */
+  var toast = $("toast");
+  var kf = $("kf");
+  if (window.SignArt) kf.textContent = SignArt.keyframesCss();
+  function openSign(label, phrase) {
+    var data = window.SignArt && SignArt.SIGNS[label];
+    if (!data) return;
+    $("scene").innerHTML = SignArt.scene(label);
+    $("tName").textContent = label;
+    $("tSays").textContent = "Says: \u201C" + phrase + "\u201D";
+    $("tDesc").textContent = data.desc;
+    $("tLink").href = "https://www.youtube.com/results?search_query=" + encodeURIComponent("ASL sign for " + label);
+    toast.classList.add("show");
+  }
+  function closeSign() { toast.classList.remove("show"); $("scene").innerHTML = ""; }
+  $("toastClose").addEventListener("click", closeSign);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeSign(); });
+
   /* speech bubbles */
   var list = $("signList");
   SIGNS.forEach(function (s) {
     var li = el("li", null, "say");
     li.appendChild(el("span", "Sign: " + s[0], "who"));
-    var b = el(canSpeak ? "button" : "div", null, "bubble-btn" + (canSpeak ? "" : " plain"));
+    var b = el("button", null, "bubble-btn");
+    b.type = "button";
     b.insertAdjacentHTML("beforeend", SPEAKER);
     b.appendChild(el("span", "\u201C" + s[1] + "\u201D"));
-    if (canSpeak) {
-      b.type = "button";
-      b.setAttribute("aria-label", "Hear the phrase for the sign " + s[0] + ": " + s[1]);
-      b.addEventListener("click", function () { speak(s[1]); });
-    }
+    b.setAttribute("aria-label", (canSpeak ? "Hear and see " : "See ") + "the sign for " + s[0] + ": " + s[1]);
+    b.addEventListener("click", function () {
+      if (canSpeak) speak(s[1]);
+      openSign(s[0], s[1]);
+    });
     li.appendChild(b);
     list.appendChild(li);
   });
