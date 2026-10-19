@@ -228,7 +228,7 @@
       <p class="lead">No setup apps, no accounts.</p>
       <ol class="steps">
         <li><h3>Put it on</h3><p>Switch it on, then hold your hand flat and make a fist for 3 seconds so it learns your hand.</p></li>
-        <li><h3>Sign</h3><p>Make one of the 24 signs it knows and hold it steady for a moment.</p></li>
+        <li><h3>Sign</h3><p>Make one of the 15 signs it knows and hold it steady for a moment.</p></li>
         <li><h3>It speaks</h3><p>The glove says the phrase out loud, in clear English.</p></li>
       </ol>
     </div>
@@ -237,7 +237,7 @@
   <section id="hear">
     <div class="wrap">
       <h2>Hear what it <em>says</em></h2>
-      <p class="lead">24 signs, 24 phrases. Tap a bubble to hear it and see how the sign looks.</p>
+      <p class="lead">15 signs, 15 phrases. Tap a bubble to hear it and see how the sign looks.</p>
       <ul class="says" id="signList"></ul>
     </div>
   </section>
@@ -255,7 +255,7 @@
             <li><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Smart glove with finger and motion sensors</li>
             <li><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Wrist unit with built-in speaker</li>
             <li><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>USB power bank and charging cable</li>
-            <li><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>24 ASL signs, spoken in English</li>
+            <li><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>15 signs, spoken in English</li>
           </ul>
         </div>
         <div class="contact">
@@ -286,13 +286,13 @@
   <div class="tbody">
     <div class="scene" id="scene"></div>
     <div class="tinfo">
-      <p class="tk">ASL sign</p>
+      <p class="tk">Hand sign</p>
       <h3 id="tName"></h3>
       <p class="tsays" id="tSays"></p>
       <p class="tdesc" id="tDesc"></p>
     </div>
   </div>
-  <p class="tfoot">Simplified drawing. <a id="tLink" href="#" target="_blank" rel="noopener">Watch a real signer</a> for the exact sign.</p>
+  <p class="tfoot">Simplified drawing of the hand. Bent fingers are curled down.</p>
 </div>
 
 <script>
@@ -381,73 +381,38 @@
   var SHAKE = [[0, 102, 134, 0, 1], [25, 120, 134, 0, 1], [50, 102, 134, 0, 1], [75, 120, 134, 0, 1], [100, 102, 134, 0, 1]];
   var BOB = [[0, 112, 132, 0, 1], [50, 112, 124, 0, 1], [100, 112, 132, 0, 1]];
 
-  var SIGNS = {
-    "Hello": { hand: { f: U, th: "tuck" },
-      motion: { dur: 1.8, frames: [[0, 104, 72, 0, 1], [15, 104, 72, 0, 1], [70, 62, 56, -14, 1], [100, 62, 56, -14, 1]] },
-      desc: "Flat hand at your forehead, then move it outward like a salute." },
-    "Thank you": { hand: { f: U, th: "tuck" },
-      motion: { dur: 1.8, frames: [[0, 110, 118, 0, 1], [15, 110, 118, 0, 1], [70, 104, 150, -10, 1], [100, 104, 150, -10, 1]] },
-      desc: "Flat fingertips at your chin, then move the hand forward and down." },
-    "Please": { hand: { f: U, th: "tuck" }, motion: { dur: 2.4, ease: "linear", frames: CIRCLE },
-      desc: "Flat hand on your chest, rubbing in a circle." },
-    "Sorry": { hand: { f: D, th: "across" }, motion: { dur: 2.4, ease: "linear", frames: CIRCLE },
-      desc: "Closed fist on your chest, rubbing in a circle." },
-    "Yes": { hand: { f: D, th: "across" },
-      motion: { dur: 1.1, frames: [[0, 112, 138, 0, 1], [50, 112, 138, 38, 1], [100, 112, 138, 0, 1]] },
-      desc: "Closed fist, nodding up and down like a head nodding." },
-    "No": { hand: { f: ["up", "up", "down", "down"], ang: [8, -6, 0, 0], th: "side" }, anim: "snap",
-      motion: { dur: 1, frames: [[0, 112, 132, 0, 1], [100, 112, 132, 0, 1]] },
-      desc: "Index and middle fingers snap shut onto the thumb, like a beak closing." },
-    "Water": { hand: { f: ["up", "up", "up", "down"], ang: [9, 0, -9, 0], th: "hold" },
-      motion: { dur: 1.2, frames: [[0, 112, 115, 0, 1], [30, 112, 108, 0, 1], [50, 112, 115, 0, 1], [70, 112, 108, 0, 1], [100, 112, 115, 0, 1]] },
-      desc: "Three fingers up (a \u201CW\u201D), tapping your chin." },
-    "Food": { hand: { shape: "flatO" },
-      motion: { dur: 1.2, frames: [[0, 116, 101, 0, 1], [30, 116, 94, 0, 1], [50, 116, 101, 0, 1], [70, 116, 94, 0, 1], [100, 116, 101, 0, 1]] },
-      desc: "Fingertips pinched together, tapping your mouth." },
-    "Restroom": { hand: { f: D, th: "between" }, motion: { dur: 0.9, ease: "linear", frames: SHAKE },
-      desc: "A fist with the thumb poking between the first two fingers (a \u201CT\u201D), shaken side to side." },
-    "Emergency": { hand: { f: D, th: "tuck" }, motion: { dur: 0.9, ease: "linear", frames: SHAKE },
-      desc: "A closed fist (an \u201CE\u201D), shaken side to side." },
-    "Help": { hand: { f: D, th: "up" },
-      motion: { dur: 1.6, frames: [[0, 112, 150, 0, 1], [20, 112, 150, 0, 1], [80, 112, 122, 0, 1], [100, 112, 122, 0, 1]] },
-      desc: "Fist with the thumb up, lifted upward. (Usually signed with two hands; this is the one-hand version.)" },
-    "Stop": { hand: { f: U, th: "tuck" },
-      motion: { dur: 1.2, frames: [[0, 112, 106, 0, 1], [20, 112, 106, 0, 1], [45, 112, 144, -8, 1], [100, 112, 144, -8, 1]] },
-      desc: "Flat hand held up, then chopped down. (Usually the chop lands on the other palm.)" },
-    "I love you": { hand: { f: ["up", "down", "down", "up"], ang: [8, 0, 0, -8], th: "side" },
-      motion: { dur: 1.4, frames: [[0, 112, 130, 0, 1], [50, 112, 130, 0, 1.12], [100, 112, 130, 0, 1]] },
-      desc: "Thumb, index finger and little finger out, held up." },
-    "Call": { hand: { f: ["down", "down", "down", "up"], th: "side" },
-      motion: { dur: 1.2, frames: [[0, 68, 76, -6, 1], [50, 68, 76, 8, 1], [100, 68, 76, -6, 1]] },
-      desc: "Thumb and little finger out (a \u201CY\u201D), held at your ear like a phone." },
-    "Okay": { hand: { shape: "OK", ang: [0, 6, 0, -8] },
+  /* The glove reads four finger sensors: thumb, index, middle, ring. Each sign is a different
+     combination of BENT fingers (the others stay straight). The little finger is not used.
+     Order = sign number 1-15 = the binary pattern of which fingers are bent. */
+  var NAMES = ["Thumb", "Index", "Middle", "Ring"];
+  var CODES = [
+    [1, 0, 0, 0], [0, 1, 0, 0], [1, 1, 0, 0], [0, 0, 1, 0], [1, 0, 1, 0],
+    [0, 1, 1, 0], [1, 1, 1, 0], [0, 0, 0, 1], [1, 0, 0, 1], [0, 1, 0, 1],
+    [1, 1, 0, 1], [0, 0, 1, 1], [1, 0, 1, 1], [0, 1, 1, 1], [1, 1, 1, 1]
+  ];
+
+  function listWords(arr) {
+    if (arr.length <= 1) return arr.join("");
+    return arr.slice(0, -1).join(", ") + " and " + arr[arr.length - 1];
+  }
+
+  function codeLabel(c) {
+    var on = [], i;
+    for (i = 0; i < 4; i++) if (c[i]) on.push(NAMES[i]);
+    return on.length === 4 ? "All four" : on.join(" + ");
+  }
+
+  var SIGNS = {};
+  CODES.forEach(function (c) {
+    var bent = [], straight = [], i;
+    for (i = 0; i < 4; i++) (c[i] ? bent : straight).push(NAMES[i].toLowerCase());
+    straight.push("little finger");
+    SIGNS[codeLabel(c)] = {
+      hand: { f: [c[1] ? "down" : "up", c[2] ? "down" : "up", c[3] ? "down" : "up", "up"], th: c[0] ? "tuck" : "side" },
       motion: { dur: 1.4, frames: BOB },
-      desc: "Thumb and index finger make a circle, other three fingers up." },
-    "Drink": { hand: { shape: "C" },
-      motion: { dur: 1.8, frames: [[0, 112, 112, 0, 1], [20, 112, 112, 0, 1], [60, 114, 96, 42, 1], [100, 114, 96, 42, 1]] },
-      desc: "Hand in a \u201CC\u201D shape, tipped toward your mouth like a cup." },
-    "Wait": { hand: { f: U, ang: [10, 3, -3, -10], th: "side" }, anim: "wiggle",
-      motion: { dur: 1.4, frames: [[0, 112, 130, 0, 1], [100, 112, 130, 0, 1]] },
-      desc: "Open hand, wiggle the fingers. (Usually signed with two hands.)" },
-    "Goodbye": { hand: { f: U, ang: [6, 2, -2, -6], th: "side" }, anim: "fold",
-      motion: { dur: 1.4, frames: [[0, 104, 114, 0, 1], [100, 104, 114, 0, 1]] },
-      desc: "Open hand, fold the fingers down and up like a wave." },
-    "Understand": { hand: { f: ["up", "down", "down", "down"], th: "across" }, anim: "flick",
-      motion: { dur: 1.6, frames: [[0, 100, 74, 0, 1], [100, 100, 74, 0, 1]] },
-      desc: "Fist near your forehead, then flick the index finger up." },
-    "Want": { hand: { f: ["claw", "claw", "claw", "claw"], th: "side" },
-      motion: { dur: 1.6, frames: [[0, 128, 116, 0, 1], [25, 128, 116, 0, 1], [75, 112, 144, 0, 1], [100, 112, 144, 0, 1]] },
-      desc: "Curved \u201Cclaw\u201D hand pulled toward you. (Usually signed with two hands.)" },
-    "Where": { hand: { f: ["up", "down", "down", "down"], th: "across" },
-      motion: { dur: 1, frames: [[0, 112, 130, -16, 1], [50, 112, 130, 16, 1], [100, 112, 130, -16, 1]] },
-      desc: "Index finger up, wagging side to side." },
-    "One": { hand: { f: ["up", "down", "down", "down"], th: "across" }, motion: { dur: 1.4, frames: BOB },
-      desc: "Index finger up." },
-    "Two": { hand: { f: ["up", "up", "down", "down"], ang: [9, -9, 0, 0], th: "across" }, motion: { dur: 1.4, frames: BOB },
-      desc: "Index and middle fingers up and spread (a \u201CV\u201D)." },
-    "Three": { hand: { f: ["up", "up", "down", "down"], ang: [4, -4, 0, 0], th: "side" }, motion: { dur: 1.4, frames: BOB },
-      desc: "Thumb, index and middle fingers out." }
-  };
+      desc: "Bend your " + listWords(bent) + ". Keep your " + listWords(straight) + " straight, and hold it for a moment."
+    };
+  });
 
   function slug(label) { return "k-" + label.toLowerCase().replace(/[^a-z0-9]+/g, "-"); }
 
@@ -482,7 +447,7 @@
     var mover = opts.attrTransform
       ? '<g class="' + cls + '" transform="' + tfAttr + '">'
       : '<g class="' + cls + '" style="transform:' + tf + ";" + anim + '">';
-    return '<svg class="sc" viewBox="20 6 200 158.3" role="img" aria-label="Illustration of the ASL sign for ' + label + '">' +
+    return '<svg class="sc" viewBox="20 6 200 158.3" role="img" aria-label="Illustration of the hand sign: bend ' + label + '">' +
       FIGURE + mover + '<g transform="scale(.7) translate(-62 -68)">' + hand(s.hand) + "</g></g></svg>";
   }
 
@@ -501,14 +466,23 @@
   var WHATSAPP = "96893123441";                  // digits only with country code, e.g. "96890000000" (leave "" if none)
   /* =========================================================== */
 
+  /* [sign (which fingers are bent), phrase the glove speaks]. The sign names must match SignArt.SIGNS. */
   var SIGNS = [
-    ["Hello", "Hello"], ["Thank you", "Thank you"], ["Please", "Please"], ["Sorry", "I am sorry"],
-    ["Yes", "Yes"], ["No", "No"], ["Water", "I need water"], ["Food", "I need food"],
-    ["Restroom", "Where is the restroom?"], ["Emergency", "This is an emergency"],
-    ["Help", "I need help"], ["Stop", "Stop"],
-    ["I love you", "I love you"], ["Call", "Please call someone for me"], ["Okay", "Okay"], ["Drink", "I want something to drink"],
-    ["Wait", "Please wait"], ["Goodbye", "Goodbye"], ["Understand", "I understand"], ["Want", "I want this"],
-    ["Where", "Where?"], ["One", "One, please"], ["Two", "Two, please"], ["Three", "Three, please"]
+    ["Thumb", "Hello, nice to meet you"],
+    ["Index", "Yes"],
+    ["Thumb + Index", "What's your name?"],
+    ["Middle", "No"],
+    ["Thumb + Middle", "How are you?"],
+    ["Index + Middle", "Please"],
+    ["Thumb + Index + Middle", "Where do you work?"],
+    ["Ring", "Thank you"],
+    ["Thumb + Ring", "Sorry"],
+    ["Index + Ring", "Help me"],
+    ["Thumb + Index + Ring", "Where is the restroom?"],
+    ["Middle + Ring", "I need water"],
+    ["Thumb + Middle + Ring", "Good morning"],
+    ["Index + Middle + Ring", "See you later, take care"],
+    ["All four", "I am hungry"]
   ];
   var SPEAKER = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';
 
@@ -565,7 +539,6 @@
     $("tName").textContent = label;
     $("tSays").textContent = "Says: \u201C" + phrase + "\u201D";
     $("tDesc").textContent = data.desc;
-    $("tLink").href = "https://www.youtube.com/results?search_query=" + encodeURIComponent("ASL sign for " + label);
     toast.classList.add("show");
   }
   function closeSign() { toast.classList.remove("show"); $("scene").innerHTML = ""; }
@@ -576,7 +549,7 @@
   var list = $("signList");
   SIGNS.forEach(function (s) {
     var li = el("li", null, "say");
-    li.appendChild(el("span", "Sign: " + s[0], "who"));
+    li.appendChild(el("span", "Bend: " + s[0], "who"));
     var b = el("button", null, "bubble-btn");
     b.type = "button";
     b.insertAdjacentHTML("beforeend", SPEAKER);
